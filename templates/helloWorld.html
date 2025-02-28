@@ -107,44 +107,83 @@
             bottom: 0;
             width: 100%;
         }
+        .file-input-container {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        #arquivo {
+            display: none; 
+        }
+
+        .file-label {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            transition: background 1s ease-in-out;
+        }
+
+        .file-label:hover {
+            background-color: #b30000;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #ccc;
+        }
     </style>
 </head>
 <body>
 
     <div class="topo">
-        <p><strong>Modo de uso:</strong> Selecione o caminho do arquivo que deseja criptografar.  
-        Para descriptografar, basta repetir o processo.  
+        <p><strong>Modo de uso:</strong> Selecione o arquivo que deseja criptografar.  
+        O arquivo criptografado será salvo em uma pasta chamada "Encriptado" no Desktop.  
+        Para descriptografar, basta repetir o processo, no arquivo encriptado.  
         Proteja seus dados com segurança e praticidade!</p>
-    </div>
+    </div>    
 
     <div class="container">
         <h1>Criptografia 256bits</h1>
 
-        <form id="formCriptografar">
-            <input type="text" id="caminho" name="caminho" placeholder="Ex: C:\Users\Nome\arquivo.txt" required>
+        <form id="formCriptografar" enctype="multipart/form-data">
+                <label for="arquivo" class="file-label">Selecionar Arquivo</label>
+                <input class="file-input-container" type="file" id="arquivo" name="arquivo" required>
+                <div id="file-name" class="file-name">Nenhum arquivo selecionado</div>
             <input type="password" id="chave" name="chave" placeholder="Crie sua chave de 32 caracteres" required>
             <button type="submit">Criptografar</button>
-        </form>
+        </form>        
     </div>
 
     <script>
+        document.getElementById("arquivo").addEventListener("change", function() {
+            let fileName = this.files.length > 0 ? this.files[0].name : "Nenhum arquivo selecionado";
+            document.getElementById("file-name").textContent = fileName;
+        });
+
         document.getElementById("formCriptografar").addEventListener("submit", function(event) {
-            event.preventDefault(); // evita recarregar a página
-            
+            event.preventDefault(); 
+
             let formData = new FormData(this);
-            
+
             fetch("/criptografar", {
                 method: "POST",
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
-                alert(data.mensagem || data.erro); //  resultado
-                document.getElementById("caminho").value = ""; // limpa caminho
-                document.getElementById("chave").value = ""; // limpa chave
+                alert(data.mensagem || data.erro); 
+
+                this.reset();
+
+                document.getElementById("file-name").textContent = "Nenhum arquivo selecionado";
             })
             .catch(error => {
-                alert("Erro ao criptografar o arquivo.");
+                alert("Erro ao criptografar: " + error.message);
             });
         });
     </script>
