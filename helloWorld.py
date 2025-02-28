@@ -5,10 +5,8 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-DESKTOP_PATH = os.path.join(os.path.expanduser("~"), "Desktop", "criptografias")
-
-os.makedirs(DESKTOP_PATH, exist_ok=True)
-app.config["UPLOAD_FOLDER"] = DESKTOP_PATH
+desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "Encriptado")
+os.makedirs(desktop_path, exist_ok=True)
 
 @app.route('/')
 def index():
@@ -29,8 +27,9 @@ def criptografar_arquivo():
         return jsonify({'erro': 'Nenhum arquivo selecionado'}), 400
 
     try:
-        # salva o arquivo no Desktop
-        caminho_arquivo = os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(arquivo.filename))
+        nome_arquivo = secure_filename(arquivo.filename)
+        caminho_arquivo = os.path.join(desktop_path, nome_arquivo)
+
         arquivo.save(caminho_arquivo)
 
         with open(caminho_arquivo, 'rb') as f:
@@ -39,17 +38,16 @@ def criptografar_arquivo():
         if not file_data:
             return jsonify({'erro': 'O arquivo está vazio'}), 400
 
-        # converte para bytes
         chave_bytes = chave_usuario.encode("utf-8")
 
-        # Criptografia
         aes = pyaes.AESModeOfOperationCTR(chave_bytes)
         encrypted_data = aes.encrypt(file_data)
 
-        with open(caminho_arquivo, 'wb') as f:
+        caminho_encriptado = os.path.join(desktop_path, f"{nome_arquivo}")
+        with open(caminho_encriptado, 'wb') as f:
             f.write(encrypted_data)
 
-        return jsonify({'mensagem': f'Arquivo "{arquivo.filename}" criptografado com sucesso e salvo no Desktop!'}), 200
+        return jsonify({'mensagem': f'Arquivo criptografado salvo em: {caminho_encriptado}'}), 200
 
     except Exception as e:
         return jsonify({'erro': f'Erro ao criptografar o arquivo: {str(e)}'}), 500
