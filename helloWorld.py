@@ -1,11 +1,11 @@
+from flask import Flask, render_template, request, send_file, jsonify
 import os
 import pyaes
-from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "Encriptado")
+desktop_path = os.path.expanduser("~/Desktop/Encriptado")
 os.makedirs(desktop_path, exist_ok=True)
 
 @app.route('/')
@@ -47,7 +47,7 @@ def criptografar_arquivo():
         with open(caminho_encriptado, 'wb') as f:
             f.write(encrypted_data)
 
-        return jsonify({'mensagem': f'Arquivo criptografado salvo em: {caminho_encriptado}'}), 200
+        return send_file(caminho_encriptado, as_attachment=True)
 
     except Exception as e:
         return jsonify({'erro': f'Erro ao criptografar o arquivo: {str(e)}'}), 500
