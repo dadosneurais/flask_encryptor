@@ -161,33 +161,49 @@
 
     <script>
         document.getElementById("arquivo").addEventListener("change", function() {
-            let fileName = this.files.length > 0 ? this.files[0].name : "Nenhum arquivo selecionado";
-            document.getElementById("file-name").textContent = fileName;
+            let file = this.files[0];
+            if (file) {
+                document.getElementById("file-name").textContent = file.name;
+                this.setAttribute("data-nome", file.name);
+            }
         });
-
+    
         document.getElementById("formCriptografar").addEventListener("submit", function(event) {
-            event.preventDefault(); 
-
+            event.preventDefault();
+    
             let formData = new FormData(this);
-
+            let fileInput = document.getElementById("arquivo");
+            let arquivo = fileInput.getAttribute("data-nome");
+    
             fetch("/criptografar", {
                 method: "POST",
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.mensagem || data.erro); 
-
-                this.reset();
-
-                document.getElementById("file-name").textContent = "Nenhum arquivo selecionado";
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Erro ao criptografar o arquivo.");
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url;
+                a.download = "encrypted";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+    
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             })
             .catch(error => {
                 alert("Erro ao criptografar: " + error.message);
             });
         });
     </script>
-
+    
 <footer>
     Todos os direitos reservados &copy; - Peterson - 2025.
 </footer>
