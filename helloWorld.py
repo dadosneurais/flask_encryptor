@@ -1,56 +1,48 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import os
 import pyaes
-from werkzeug.utils import secure_filename
+import secrets
 
 app = Flask(__name__)
 
-desktop_path = os.path.expanduser("~/Desktop/Encriptado")
-os.makedirs(desktop_path, exist_ok=True)
+# Define o diretório onde os arquivos criptografados serão armazenados
+OUTPUT_DIR = os.path.expanduser("~/Desktop/Encriptado")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-@app.route('/')
+
+@app.route("/")
 def index():
-    return render_template('helloWorld.html')
+    return render_template("helloWorld.html")
 
-@app.route('/criptografar', methods=['POST'])
-def criptografar_arquivo():
-    if "arquivo" not in request.files:
-        return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+
+@app.route("/criptografar", methods=["POST"])
+def criptografar():
+    if "arquivo" not in request.files or request.files["arquivo"].filename == "":
+        return jsonify({"erro": "Nenhum arquivo foi enviado."}), 400
 
     arquivo = request.files["arquivo"]
-    chave_usuario = request.form.get("chave")
+    chave = request.form.get("chave")
 
-    if not chave_usuario or len(chave_usuario) not in [16, 24, 32]:
-        return jsonify({'erro': 'A chave precisa ter 16, 24 ou 32 bytes'}), 400
+    # Verifica se a chave tem tamanho válido (16, 24 ou 32 bytes)
+    if not chave or len(chave) not in [16, 24, 32]:
+        return jsonify({"erro": "A chave deve ter 16, 24 ou 32 caracteres."}), 400
 
-    if arquivo.filename == '':
-        return jsonify({'erro': 'Nenhum arquivo selecionado'}), 400
+    # Lê o conteúdo do arquivo em modo binário
+    file_data = arquivo.read()
 
-    try:
-        nome_arquivo = secure_filename(arquivo.filename)
-        caminho_arquivo = os.path.join(desktop_path, nome_arquivo)
+    # Cria o objeto AES com o modo de operação CTR
+    aes = pyaes.AESModeOfOperationCTR(chave.encode())
 
-        arquivo.save(caminho_arquivo)
+    # Criptografa os dados do arquivo
+    encrypted_data = aes.encrypt(file_data)
 
-        with open(caminho_arquivo, 'rb') as f:
-            file_data = f.read()
+    # Salva o arquivo criptografado no diretório definido
+    encrypted_filename = f"{OUTPUT_DIR}/{arquivo.filename}"
+    with open(encrypted_filename, "wb") as f:
+        f.write(encrypted_data)
 
-        if not file_data:
-            return jsonify({'erro': 'O arquivo está vazio'}), 400
+    return jsonify({"mensagem": f"Arquivo criptografado salvo em: {encrypted_filename}"})
 
-        chave_bytes = chave_usuario.encode("utf-8")
 
-        aes = pyaes.AESModeOfOperationCTR(chave_bytes)
-        encrypted_data = aes.encrypt(file_data)
-
-        caminho_encriptado = os.path.join(desktop_path, f"{nome_arquivo}")
-        with open(caminho_encriptado, 'wb') as f:
-            f.write(encrypted_data)
-
-        return send_file(caminho_encriptado, as_attachment=True)
-
-    except Exception as e:
-        return jsonify({'erro': f'Erro ao criptografar o arquivo: {str(e)}'}), 500
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
